@@ -101,7 +101,6 @@ public class GlobalVariableChangeScanTask implements Runnable{
 	  }
 	  private ConfigBlock scanHost(DBInstanceInfo dbinfo)
 	  {
-	    boolean status = false;
 		DBCredential cred = DBUtils.findDBCredential(context, dbinfo.getDbGroupName(), appUser);
 		if(cred==null)
 		{
@@ -121,15 +120,15 @@ public class GlobalVariableChangeScanTask implements Runnable{
 			  logger.info("Failed to access "+dbinfo+", skip it");
 		    return null;
 		  }
-		  String sqlText = "select variable_name, variable_value from information_schema.global_variables";
+		  String sqlText = "show global variables";
 		  stmt = conn.getConnection().createStatement();
 		  rs = stmt.executeQuery(sqlText);
 		  cb = new ConfigBlock();
 		  while(rs!=null&&rs.next())
 		  {
-			  String key = rs.getString("variable_name");
+			  String key = rs.getString("VARIABLE_NAME").toUpperCase();
 			  if("TIMESTAMP".equalsIgnoreCase(key))continue;//exclude a timestamp variable
-			  cb.addVariable(key, rs.getString("variable_value"));
+			  cb.addVariable(key, rs.getString("VALUE"));
 		  }
 		  Calendar c = Calendar.getInstance();
 		  Date dt = c.getTime();			
@@ -137,6 +136,8 @@ public class GlobalVariableChangeScanTask implements Runnable{
 		}catch(Exception ex)
 		{
 		  logger.log(Level.WARNING, "exception", ex);
+		  //we should not used failed data
+		  return null;
 		}finally
 		{
 			DBUtils.close(rs);
